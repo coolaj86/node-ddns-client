@@ -9,6 +9,7 @@ cli.parse({
   service: [ 's', 'The service to use for updates i.e. ns1.example.org', 'string' ]
 , hostname: [ 'h', 'The hostname you wish to update i.e. example.com', 'string' ]
 , pathname: [ false, 'The api route to which to POST i.e. /api/ddns', 'string' ]
+, device: [ false, '(i.e. jobberwocky) use this if you have multiple devices that will all respond to this domain (i.e. dns round-robin)', 'string' ]
 , type: [ 't', 'The record type i.e. A, AAAA, MX, CNAME, ANAME, FWD, etc', 'string', 'A' ]
 , priority: [ 'p', 'The priority (for MX and other records)', 'string' ]
 , port: [ false, 'The port (default https/443)', 'number', 443 ]
@@ -85,8 +86,8 @@ cli.main(function (args, opts) {
       , "type": options.type
       , "priority": options.priority
       , "token": options.token // device should go here?
-      //, "ttl": options.ttl
-      //, "device": ''
+      , "ttl": options.ttl || undefined
+      , "device": options.device || undefined
       }
     ]
   }).then(function (data) {

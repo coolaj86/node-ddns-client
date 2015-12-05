@@ -3,6 +3,81 @@ node-ddns-client
 
 A commandline Dynamic DNS client for Node DDNS
 
+Commandline
+===========
+
+```bash
+npm install --global ddns-cli
+```
+
+```bash
+ddns example.com \
+  --answer 127.0.0.1 \
+  --type A \
+  --token token.txt \
+  ns1.foo-dns-service.com ns2.foo-dns-service.com
+```
+
+multiple devices
+--------
+
+** The `--device` option**
+
+In the real world you probably have several servers with several IP addresses
+that all respond to the same domain.
+
+The `device` option allows you to specify a different device which will add an ip record rather than
+overwrite an existing ip record.
+
+```bash
+ddns example.com \
+  --answer 127.0.0.1 \
+  --device server-3
+  --type A \
+  --token token.txt \
+  ns1.foo-dns-service.com ns2.foo-dns-service.com
+```
+
+API
+===
+
+* `ddns.update({ servers, pathname, ddns })`
+
+NOTE: the API will change in a future version (currently there are some bad naming conventions),
+but I'll keep backwards compatibility.
+
+```javascript
+var ddns = require('ddns-cli');
+
+ddns.update({
+  servers: [
+    'ns1.example.net'
+  , 'ns2.example.net'
+  , 'ns3.example.net'
+  , 'ns4.example.net'
+  ]
+, pathname: '/api/com.daplie.dns/ddns'
+, ddns: [
+    { "name": "example.com"
+    , "value": "127.0.0.1"
+    , "type": "A"
+    , "priority": undefined
+    , "token": "ef13...."   // jwt token
+    , "ttl": 600            // 10 minutes
+    , "device": "server-7"
+    }
+  , { "name": "example.com"
+    , "value": "::1"
+    , "type": "AAAA"
+    , "priority": undefined
+    , "token": "ef13...."   // jwt token
+    , "ttl": 600            // 10 minutes
+    , "device": "server-7"
+    }
+  ]
+});
+```
+
 LICENSE
 =======
 

@@ -70,10 +70,6 @@ cli.main(function (args, opts) {
     }
   }
 
-  //console.log('args');
-  //console.log(args);
-  //console.log(options);
-
   return ddns.update({
     servers: options.services
   , port: options.port
@@ -91,16 +87,9 @@ cli.main(function (args, opts) {
       }
     ]
   }).then(function (data) {
-    if ('string') {
-      try {
-        data = JSON.parse(data);
-      } catch(e) {
-        console.error(data);
-      }
-    }
-
     if (!Array.isArray(data)) {
-      console.log(JSON.stringify(data, null, '  '));
+      console.error('[Error] unexpected data');
+      console.error(JSON.stringify(data, null, '  '));
       return;
     }
     console.log('Test with');

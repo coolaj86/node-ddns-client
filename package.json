@@ -1,0 +1,32 @@
+{
+  "name": "ddns-cli",
+  "version": "1.0.0",
+  "description": "commandline dynamic dns client for node-ddns",
+  "main": "lib/ddns-client.js",
+  "bin": {
+    "ddns": "ddns.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coolaj86/node-ddns-client.git"
+  },
+  "keywords": [
+    "dynamic",
+    "dns",
+    "dynamicdns",
+    "ddns",
+    "dyndns"
+  ],
+  "author": "AJ ONeal <coolaj86@gmail.com> (https://coolaj86.com/)",
+  "license": "(MIT OR Apache-2.0)",
+  "bugs": {
+    "url": "https://github.com/coolaj86/node-ddns-client/issues"
+  },
+  "homepage": "https://github.com/coolaj86/node-ddns-client#readme",
+  "dependencies": {
+    "cli": "^0.11.1"
+  }
+}

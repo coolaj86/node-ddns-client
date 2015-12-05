@@ -1,0 +1,115 @@
+#!/usr/bin/env node
+'use strict';
+
+// dig -p 53 @redirect-www.org pi.nadal.daplie.com A
+var ddns = require('../lib/ddns-client.js');
+var cli = require('cli');
+
+cli.parse({
+  service: [ 's', 'The service to use for updates i.e. ns1.example.org', 'string' ]
+, hostname: [ 'h', 'The hostname you wish to update i.e. example.com', 'string' ]
+, pathname: [ false, 'The api route to which to POST i.e. /api/ddns', 'string' ]
+, type: [ 't', 'The record type i.e. A, AAAA, MX, CNAME, ANAME, FWD, etc', 'string', 'A' ]
+, priority: [ 'p', 'The priority (for MX and other records)', 'string' ]
+, port: [ false, 'The port (default https/443)', 'number', 443 ]
+, insecure: [ false, '(deprecated) allow insecure non-https connections', 'boolean' ]
+, cacert: [ false, '(not implemented) specify a CA for "self-signed" https certificates', 'string' ]
+, answer: [ 'a', 'The answer', 'string' ]
+, token: [ false, 'Token', 'string' ]
+});
+
+cli.main(function (args, opts) {
+  var options = {};
+
+  Object.keys(opts).forEach(function (key) {
+    options[key] = opts[key];
+  });
+
+  if (!opts.hostname) {
+    options.hostname = args[0];
+    args.splice(0, 1);
+  }
+
+  if (!opts.service) {
+    options.services = args;
+  } else {
+    options.services = [opts.service].filter(function (s) { return s; });
+  }
+
+  if (options.insecure) {
+    //console.error('--insecure is not supported. You must use secure connections.');
+    //return;
+    options.cacert = false;
+  }
+
+  // TODO read services and token from config
+  // if (!fs.existsSync('~/.node-ddns')) {
+  //   console.error('You must login first: ddns login');
+  //   // TODO prompt email, password, one-time
+  //   // TODO npm install --save qrcode-terminal
+  //   return;
+  // }
+
+  if (!options.hostname || !options.services.length || !options.token) {
+    console.error('Usage: ddns <HOSTNAME> -a <ANSWER> --token <STRING_OR_FILENAME> <NAMESERVER_1> [NAMESERVER_2] [...]');
+    console.error('Example: ddns example.com -a 127.0.0.1 --token token.txt ns1.redirect-www.org ns2.redirect-www.org');
+    console.error('\nNote: if you omit ANSWER, it is assumed that the dyndns service will use the request ip');
+    console.error('You may also wish to use an external service, such as $(curl https://api.ipify.org)');
+    return;
+  }
+
+  if (options.token) {
+    try {
+      options.token = require('fs').readFileSync(options.token, 'ascii').trim();
+    } catch(e) {
+      if (options.token.length < 384) {
+        console.error("Could not read token file '" + options.token + "'");
+        return;
+      }
+    }
+  }
+
+  //console.log('args');
+  //console.log(args);
+  //console.log(options);
+
+  return ddns.update({
+    servers: options.services
+  , port: options.port
+  , cacert: options.cacert
+  , pathname: options.pathname || '/api/com.daplie.dns/ddns' // TODO dns -> ddns ?
+  , token: options.token
+  , ddns: [
+      { "name": options.hostname
+      , "value": options.answer
+      , "type": options.type
+      , "priority": options.priority
+      , "token": options.token // device should go here?
+      //, "ttl": options.ttl
+      //, "device": ''
+      }
+    ]
+  }).then(function (data) {
+    if ('string') {
+      try {
+        data = JSON.parse(data);
+      } catch(e) {
+        console.error(data);
+      }
+    }
+
+    if (!Array.isArray(data)) {
+      console.log(JSON.stringify(data, null, '  '));
+      return;
+    }
+    console.log('Test with');
+    console.log('dig ' + options.hostname + ' ' + (options.type || ''));
+    data.forEach(function (results) {
+      // ignore
+    });
+  }, function (err) {
+    console.error('[Error] ddns-cli:');
+    console.error(err.stack);
+    console.error(err.data);
+  });
+});

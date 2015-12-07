@@ -78,6 +78,28 @@ ddns.update({
 });
 ```
 
+curl
+----
+
+For the curious curlers who would like to implement this in another language:
+
+```
+JWT="xyz.abc.xyz"
+IP="127.0.0.1"
+HOSTNAME="example.com"
+DEVICE="foo"
+
+curl -X POST https://ns1.example.net/api/com.daplie.dns/ddns \
+  -H "Authorization: Bearer $JWT" \
+  -H "Content-Type: application/json" \
+  -d '[
+    { "name": "'$HOSTNAME'", "value": "'$IP'", "type": "A", "token": "'$JWT'", "ttl": 600, "device": "'$DEVICE'" }
+  ]'
+```
+
+Note: the API may change to accept an array of tokens and an array of domains separately,
+but it will probably still need an Authorization Bearer token.
+
 LICENSE
 =======
 

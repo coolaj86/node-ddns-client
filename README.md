@@ -18,6 +18,17 @@ ddns example.com \
   ns1.foo-dns-service.com ns2.foo-dns-service.com
 ```
 
+free domains for testing
+--------
+
+Get a randomly assigned domain:
+
+```bash
+ddns-testing \
+  --answer 127.0.0.1 \
+  --type A
+```
+
 multiple devices
 --------
 

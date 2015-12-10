@@ -14,8 +14,9 @@ var freedomain = testing ? 'testing.letssecure.org' : '.daplie.me';
 var configPath = path.join(require('os').homedir(), testing ? '.ddnsrc-testing.json' : '.ddnsrc.json' );
 
 cli.parse({
-// agree: [ false, 'Agree to the Daplie DNS terms of service. They are very friendly and available at https://daplie.com/dns#terms', 'string', false ]
-  answer: [ 'a', 'The answer', 'string' ]
+  agree: [ false, "You agree to use Daplie DNS for good, not evil. You will not try to break stuff, hurt people, etc (we will notify you via email when more official legal terms become available on our website).", 'boolean', false ]
+  //agree: [ false, 'Agree to the Daplie DNS terms of service. They are very friendly and available at https://daplie.com/dns#terms', 'boolean', false ]
+, answer: [ 'a', 'The answer', 'string' ]
 , cacert: [ false, 'specify a CA for "self-signed" https certificates', 'string' ]
 , config: [ false, 'path to config file', 'string', configPath ]
 , device: [ false, '(i.e. jobberwocky) use this if you have multiple devices that will all respond to this domain (i.e. dns round-robin)', 'string' ]
@@ -101,12 +102,23 @@ cli.main(function (args, cli) {
     }
   }
   options.email = options.email || rc.email;
-  if ((new RegExp(freedomain)).test(options.hostname) && !options.email) {
-    console.error("[Error] You must specify a email address with --email");
-    console.error("");
-    console.error("our registration system is not yet complete, but we will email you when it is");
-    console.error("so that you can claim your '" + freedomain + "' domain");
-    return;
+  if ((new RegExp(freedomain)).test(options.hostname)) {
+    if (!options.email) {
+      console.error("[Error] You must specify a email address with --email");
+      console.error("");
+      console.error("our registration system is not yet complete, but we will email you when it is");
+      console.error("so that you can claim your '" + freedomain + "' domain");
+      return;
+    }
+    if (!options.agree) {
+      console.error("[Error] To register a domain with us you must agree to our terms of use");
+      console.error("");
+      console.error("add --agree to accept the Daplie DNS terms of use");
+      console.error("");
+      console.error("Currently our agreement is simply: 'You will use Daplie DNS for good, not evil'.");
+      console.error("We will email you when our actual legal agreement becomes available.");
+      return;
+    }
   }
   options.token = cli.token || rc.token || tokenPath;
 

@@ -52,12 +52,12 @@ cli.main(function (args, opts) {
   });
 
   if (!opts.hostname) {
-    options.hostname = args[0];
+    options.hostname = args[0] || config.hostname;
     args.splice(0, 1);
   }
 
   if (!opts.service) {
-    options.services = ['ns1.redirect-www.org', 'ns2.redirect-www.org'];
+    options.services = config.services || ['ns1.redirect-www.org', 'ns2.redirect-www.org'];
   } else {
     options.services = [opts.service].filter(function (s) { return s; });
   }

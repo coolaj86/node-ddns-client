@@ -34,6 +34,7 @@ You can **choose your own** subdomain:
 
 ddns \
   --hostname aj \
+  --email 'john.doe@example.com' \
   --answer 127.0.0.1 \
   --type A
 
@@ -48,6 +49,7 @@ Or get a **randomly assigned** subdomain in the format `rubber-duck-42`
 
 ddns \
   --hostname aj.daplie.me \
+  --email 'john.doe@example.com' \
   --answer 127.0.0.1 \
   --type A
 
@@ -61,6 +63,7 @@ Here's an example using `ddns-testing`:
 
 ddns-testing \
   --random \
+  --email 'john.doe@example.com' \
   --answer 127.0.0.1 \
   --type A
 

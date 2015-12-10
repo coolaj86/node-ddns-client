@@ -14,10 +14,12 @@ var freedomain = testing ? 'testing.letssecure.org' : '.daplie.me';
 var configPath = path.join(require('os').homedir(), testing ? '.ddnsrc-testing.json' : '.ddnsrc.json' );
 
 cli.parse({
+// agree: [ false, 'Agree to the Daplie DNS terms of service. They are very friendly and available at https://daplie.com/dns#terms', 'string', false ]
   answer: [ 'a', 'The answer', 'string' ]
 , cacert: [ false, 'specify a CA for "self-signed" https certificates', 'string' ]
 , config: [ false, 'path to config file', 'string', configPath ]
 , device: [ false, '(i.e. jobberwocky) use this if you have multiple devices that will all respond to this domain (i.e. dns round-robin)', 'string' ]
+, email: [ false, 'we will keep your email safe and use it contact you when authenticated domain registration is available', 'email' ]
 , hostname: [ 'h', "Pick your own subdomain of '" + freedomain + "' (note that unregistered domains can be claimed by anyone)", 'string' ]
 , pathname: [ false, 'The api route to which to POST i.e. /api/ddns', 'string', '/api/com.daplie.dns/ddns' ]
 , port: [ false, 'The port (default https/443)', 'number', 443 ]
@@ -98,6 +100,14 @@ cli.main(function (args, cli) {
       return;
     }
   }
+  options.email = options.email || rc.email;
+  if ((new RegExp(freedomain)).test(options.hostname) && !options.email) {
+    console.error("[Error] You must specify a email address with --email");
+    console.error("");
+    console.error("our registration system is not yet complete, but we will email you when it is");
+    console.error("so that you can claim your '" + freedomain + "' domain");
+    return;
+  }
   options.token = cli.token || rc.token || tokenPath;
 
   // TODO read services and token from config
@@ -127,6 +137,7 @@ cli.main(function (args, cli) {
     , "token": options.token // device should go here?
     , "ttl": options.ttl || undefined
     , "device": options.device || undefined
+    , "email": options.email || undefined
     }
   ];
 
@@ -146,7 +157,7 @@ cli.main(function (args, cli) {
       });
     })) {
       console.error('[Error DDNS]:');
-      console.error(data);
+      console.error(JSON.stringify(data, null, '  '));
       return;
     }
 
@@ -168,10 +179,12 @@ cli.main(function (args, cli) {
     console.log('dig ' + options.hostname + ' ' + (options.type || ''));
     console.log('\n');
     try {
-      if (!(rc.hostname || rc.services || rc.token)) {
+      if (!(rc.hostname || rc.services || rc.token || rc.email)) {
         rc.hostname = options.hostname;
         rc.services = options.services;
         rc.token = options.token;
+        rc.email = options.email;
+
         fs.writeFileSync(configPath, JSON.stringify(rc, null, '  '), 'ascii');
         console.log("config saved to '" + configPath + "'");
       }

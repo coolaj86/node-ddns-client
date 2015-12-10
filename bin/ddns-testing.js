@@ -34,6 +34,7 @@ cli.parse({
 
 cli.main(function (args, opts) {
   var options = {};
+  var answers;
 
   if (configPath !== opts.config) {
     config = require(configPath);
@@ -95,22 +96,24 @@ cli.main(function (args, opts) {
     }
   }
 
+  answers = [
+    { "name": options.hostname
+    , "value": options.answer
+    , "type": options.type
+    , "priority": options.priority
+    , "token": options.token // device should go here?
+    , "ttl": options.ttl || undefined
+    , "device": options.device || undefined
+    }
+  ];
+
   return ddns.update({
     servers: options.services
   , port: options.port
   , cacert: options.cacert
   , pathname: options.pathname || '/api/com.daplie.dns/ddns' // TODO dns -> ddns ?
   , token: options.token
-  , ddns: [
-      { "name": options.hostname
-      , "value": options.answer
-      , "type": options.type
-      , "priority": options.priority
-      , "token": options.token // device should go here?
-      , "ttl": options.ttl || undefined
-      , "device": options.device || undefined
-      }
-    ]
+  , ddns: answers
   }).then(function (data) {
     var line;
 

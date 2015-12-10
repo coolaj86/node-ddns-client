@@ -11,23 +11,63 @@ npm install --global ddns-cli
 ```
 
 ```bash
-ddns example.com \
+ddns \
+  --hostname example.com \
   --answer 127.0.0.1 \
   --type A \
   --token token.txt \
-  ns1.foo-dns-service.com ns2.foo-dns-service.com
+  --services ns1.foo-dns-service.com,ns2.foo-dns-service.com
 ```
 
 free domains for testing
 --------
 
-Get a randomly assigned domain:
+There are two domains available:
+
+* `*.daplie.me` via `ddns`
+* `*.testing.letssecure.org` via `ddns-testing`
+
+You can **choose your own** subdomain:
 
 ```bash
-ddns-testing \
+# <whatever>.daplie.me
+
+ddns \
+  --hostname aj \
   --answer 127.0.0.1 \
   --type A
+
+# assigns aj.daplie.me
 ```
+
+Or get a **randomly assigned** subdomain in the format `rubber-duck-42`
+
+```bash
+
+# <random>.daplie.me
+
+ddns \
+  --hostname aj.daplie.me \
+  --answer 127.0.0.1 \
+  --type A
+
+# assigns rubber-duck-42.daplie.me
+```
+
+Here's an example using `ddns-testing`:
+
+```bash
+# <random>.testing.letssecure.org
+
+ddns-testing \
+  --random \
+  --answer 127.0.0.1 \
+  --type A
+
+# assigns rubber-duck-42.letssecure.org
+```
+
+Note: these domains are restricted to a single device (see below)
 
 multiple devices
 --------
@@ -41,12 +81,13 @@ The `device` option allows you to specify a different device which will add an i
 overwrite an existing ip record.
 
 ```bash
-ddns example.com \
+ddns \
+  --hostname example.com \
   --answer 127.0.0.1 \
   --device server-3
   --type A \
   --token token.txt \
-  ns1.foo-dns-service.com ns2.foo-dns-service.com
+  --services ns1.foo-dns-service.com,ns2.foo-dns-service.com
 ```
 
 API

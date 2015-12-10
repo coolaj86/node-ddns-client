@@ -5,7 +5,7 @@
   "main": "lib/ddns-client.js",
   "bin": {
     "ddns": "bin/ddns",
-    "ddns-testing": "bin/ddns-testing.js"
+    "ddns-testing": "bin/ddns"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

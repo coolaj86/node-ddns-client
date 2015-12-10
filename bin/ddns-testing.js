@@ -117,6 +117,16 @@ cli.main(function (args, opts) {
   }).then(function (data) {
     var line;
 
+    if (!data.every(function (records) {
+      return Array.isArray(records) && records.every(function (r) {
+        return r && r.value;
+      });
+    })) {
+      console.error('[Error DDNS]:');
+      console.error(data);
+      return;
+    }
+
     if (!Array.isArray(data)) {
       console.error('[Error] unexpected data');
       console.error(JSON.stringify(data, null, '  '));
@@ -130,6 +140,7 @@ cli.main(function (args, opts) {
     // TODO fix weird double array bug
     console.log('IP Address: ' + data[0][0].value);
     console.log(line.replace(/./g, '-'));
+    console.log("config saved to '" + configPath + "'");
     console.log('\n');
     console.log('Test with');
     console.log('dig ' + options.hostname + ' ' + (options.type || ''));

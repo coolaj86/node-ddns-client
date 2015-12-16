@@ -1,10 +1,11 @@
 {
   "name": "ddns-cli",
-  "version": "1.0.4",
+  "version": "1.2.1",
   "description": "commandline dynamic dns client for node-ddns",
   "main": "lib/ddns-client.js",
   "bin": {
-    "ddns": "bin/ddns"
+    "ddns": "bin/ddns",
+    "ddns-testing": "bin/ddns"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -28,6 +29,7 @@
   "homepage": "https://github.com/coolaj86/node-ddns-client#readme",
   "dependencies": {
     "bluebird": "^3.0.6",
-    "cli": "^0.11.1"
+    "cli": "^0.11.1",
+    "human-readable-ids": "^1.0.1"
   }
 }

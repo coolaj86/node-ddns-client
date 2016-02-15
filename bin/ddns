@@ -11,7 +11,7 @@ var hri = require('human-readable-ids').hri;
 var ddns = require('../lib/ddns-client.js');
 
 var freedomain = testing ? 'testing.letssecure.org' : '.daplie.me';
-var configPath = path.join(require('os').homedir(), testing ? '.ddnsrc-testing.json' : '.ddnsrc.json' );
+var configPath = path.join(require('homedir')(), testing ? '.ddnsrc-testing.json' : '.ddnsrc.json' );
 
 cli.parse({
   agree: [ false, "You agree to use Daplie DNS for good, not evil. You will not try to break stuff, hurt people, etc (we will notify you via email when more official legal terms become available on our website).", 'boolean', false ]

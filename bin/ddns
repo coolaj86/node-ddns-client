@@ -160,10 +160,13 @@ cli.main(function (args, cli) {
   , pathname: options.pathname || '/api/com.daplie.dns/ddns' // TODO dns -> ddns ?
   , token: options.token
   , ddns: answers
+  , mapResults: true
   }).then(function (data) {
     var line;
+    var servernames = Object.keys(data);
 
-    if (!data.every(function (records) {
+    if (!servernames.every(function (servername) {
+      var records = data[servername].results;
       return Array.isArray(records) && records.every(function (r) {
         return r && r.value;
       });
@@ -173,18 +176,20 @@ cli.main(function (args, cli) {
       return;
     }
 
+    /*
     if (!Array.isArray(data)) {
       console.error('[Error] unexpected data');
       console.error(JSON.stringify(data, null, '  '));
       return;
     }
+    */
 
     line = 'Hostname: ' + options.hostname;
     console.log('');
     console.log(line.replace(/./g, '-'));
     console.log(line);
     // TODO fix weird double array bug
-    console.log('IP Address: ' + data[0][0].value);
+    console.log('IP Address: ' + data[servernames[0]].results[0].value);
     console.log(line.replace(/./g, '-'));
     console.log('\n');
     console.log('Test with');

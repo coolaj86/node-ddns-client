@@ -10,7 +10,7 @@ var cli = require('cli');
 var hri = require('human-readable-ids').hri;
 var ddns = require('../lib/ddns-client.js');
 
-var freedomain = testing ? 'testing.letssecure.org' : '.daplie.me';
+var freedomain = testing ? 'testing.letssecure.org' : 'daplie.me';
 var configPath = path.join(require('homedir')(), testing ? '.ddnsrc-testing.json' : '.ddnsrc.json' );
 
 cli.parse({
@@ -91,7 +91,7 @@ cli.main(function (args, cli) {
   if (!cli.token) {
     // TODO escape re, use rc.hostname
     if (!rc.token) {
-      if (!(new RegExp(freedomain)).test(options.hostname)) {
+      if (!(new RegExp('\\w\\.' + freedomain + '$')).test(options.hostname)) {
         console.error("You must specify --token /path/to/sub.domain.tld.jwt");
         return;
       }
@@ -102,7 +102,7 @@ cli.main(function (args, cli) {
     }
   }
   options.email = options.email || rc.email;
-  if ((new RegExp(freedomain)).test(options.hostname)) {
+  if ((new RegExp('\\w\\.' + freedomain + '$')).test(options.hostname)) {
     if (!options.email) {
       console.error("[Error] You must specify a email address with --email");
       console.error("");

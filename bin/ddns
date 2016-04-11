@@ -65,7 +65,8 @@ cli.main(function (args, cli) {
   }
   if (cli.random) {
     if (rc.hostname) {
-      console.warn("[warn] ignoring --random because you already have a domain in '" + configPath + "'");
+      console.error("[error] cannot use --random because you already have a domain in '" + configPath + "'");
+      return;
     }
   }
   options.hostname = cli.hostname || rc.hostname || hri.random();

@@ -190,6 +190,9 @@ var form = {
 
         cbs.onReturnAsync(rrs, ws, ws._input.join(''), ch).then(function () {
           ws.write('\n');
+          ws.clearLine(); // person just hit enter, they are on the next line
+                          // (and this will clear the status, if any)
+                          // TODO count lines used below and clear all of them
           rrs.setRawMode(false);
 
           resolve({ input: ws._input.join('') });
@@ -278,17 +281,50 @@ var inputs = {
       var dns = PromiseA.promisifyAll(require('dns'));
       var parts = str.split(/@/g);
 
-      if (2 !== parts.length || /\s+|\//.test(str)) {
+      // http://emailregex.com/
+      if (2 !== parts.length || !/^[-a-z0-9~!$%^&*_=+}{\'?]+(\.[-a-z0-9~!$%^&*_=+}{\'?]+)*/.test(parts[0])) {
         return PromiseA.reject(new Error("[X] That doesn't look like an email address"));
       }
 
       rrs.pause();
-      form.setStatus(rrs, ws, colors.blue("testing `dig mx '" + parts[1] + "'` ... "));
+      form.setStatus(rrs, ws, colors.blue("testing `dig MX '" + parts[1] + "'` ... "));
 
       return dns.resolveMxAsync(parts[1]).then(function () {
         return;
       }, function () {
         return PromiseA.reject(new Error("[X] '" + parts[1] + "' is not a valid email domain"));
+      });
+    }
+  }
+, url: {
+    onReturnAsync: function (rrs, ws, str) {
+      str = str.trim();
+      var dns = PromiseA.promisifyAll(require('dns'));
+      var url = require('url');
+      var urlObj = url.parse(str);
+
+      if (!urlObj.protocol) {
+        str = 'https://' + str; // .replace(/^(https?:\/\/)?/i, 'https://');
+        urlObj = url.parse(str);
+      }
+
+      if (!urlObj.protocol || !urlObj.hostname) {
+        return PromiseA.reject(new Error("[X] That doesn't look like a url"));
+      }
+      if ('https:' !== urlObj.protocol.toLowerCase()) {
+        return PromiseA.reject(new Error("[X] That url doesn't use https"));
+      }
+      if (/^www\./.test(urlObj.hostname)) {
+        return PromiseA.reject(new Error("[X] That url has a superfluous www. prefix"));
+      }
+
+      rrs.pause();
+      form.setStatus(rrs, ws, colors.blue("testing `dig A '" + urlObj.hostname + "'` ... "));
+
+      return dns.resolveAsync(urlObj.hostname).then(function () {
+        return;
+      }, function () {
+        return PromiseA.reject(new Error("[X] '" + urlObj.hostname + "' doesn't look right (dns lookup failed)"));
       });
     }
   }
@@ -314,6 +350,7 @@ module.exports.create = function (rrs, rws) {
     };
   });
 
+  f.createWs = undefined;
   f.inputs = inputs;
   f.ws = ws;
   f.rrs = rrs;

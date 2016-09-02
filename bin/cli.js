@@ -18,6 +18,8 @@ var ARROW_UP = '\u001b[A';      // 38
 var ARROW_DOWN = '\u001b[B';    // 40
 var ARROW_RIGHT = '\u001b[C';   // 39
 var ARROW_LEFT = '\u001b[D';    // 37
+// "\033[2J\033[;H" CLS // "\x1b[2J\x1b[1;1H"
+// \033[0m RESET
 
 function statusMessage(ws, msg) {
   //var errlen = (' ' + err.message).length;
@@ -263,7 +265,9 @@ function ask(stdin, rws, q, cbs) {
   });
 }
 
-ask(rs, ws, "Enter your email address: ", {
+var inputs = {};
+
+inputs.email = {
   onReturnAsync: function (str) {
     str = str.trim();
     var dns = PromiseA.promisifyAll(require('dns'));
@@ -275,9 +279,16 @@ ask(rs, ws, "Enter your email address: ", {
 
     process.stdin.pause();
     statusMessage(ws, colors.blue("testing `dig mx '" + parts[1] + "'` ... "));
-    return dns.resolveMxAsync(parts[1]);
+
+    return dns.resolveMxAsync(parts[1]).then(function () {
+      return;
+    }, function () {
+      return PromiseA.reject(new Error("[X] '" + parts[1] + "' is not a valid email domain"));
+    });
   }
-}).then(function (/*obj*/) {
+};
+
+ask(rs, ws, "Enter your email address: ", inputs.email).then(function (/*obj*/) {
   // TODO auto-clear line below
   //ws.cursorTo(0);
   ws.clearLine(); // person just hit enter, they are on the next line

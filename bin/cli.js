@@ -144,6 +144,8 @@ var form = {
 
 , ask: function (rrs, ws, prompt, cbs) {
     ws._prompt = prompt;
+    ws._input = [];
+    ws._inputIndex = 0;
 
     return new PromiseA(function (resolve) {
       var ch;
@@ -195,7 +197,10 @@ var form = {
                           // TODO count lines used below and clear all of them
           rrs.setRawMode(false);
 
-          resolve({ input: ws._input.join('') });
+          var input = ws._input.join('');
+          ws._input = [];
+          ws._inputIndex = 0;
+          resolve({ input: input });
         }, function (err) {
           rrs.on('data', onData);
 

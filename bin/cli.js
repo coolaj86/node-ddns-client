@@ -265,6 +265,7 @@ function ask(stdin, rws, q, cbs) {
 
 ask(rs, ws, "Enter your email address: ", {
   onReturnAsync: function (str) {
+    str = str.trim();
     var dns = PromiseA.promisifyAll(require('dns'));
     var parts = str.split(/@/g);
 

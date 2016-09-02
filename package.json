@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/coolaj86/node-ddns-client.git"
+    "url": "git+https://github.com/Daplie/node-ddns-client.git"
   },
   "keywords": [
     "dynamic",
@@ -24,13 +24,17 @@
   "author": "AJ ONeal <coolaj86@gmail.com> (https://coolaj86.com/)",
   "license": "(MIT OR Apache-2.0)",
   "bugs": {
-    "url": "https://github.com/coolaj86/node-ddns-client/issues"
+    "url": "https://github.com/Daplie/node-ddns-client/issues"
   },
-  "homepage": "https://github.com/coolaj86/node-ddns-client#readme",
+  "homepage": "https://github.com/Daplie/node-ddns-client#readme",
   "dependencies": {
     "bluebird": "^3.0.6",
     "cli": "^0.11.1",
+    "daplie-dns": "git+https://github.com/Daplie/daplie-cli-dns.git#master",
+    "daplie-domains": "git+https://github.com/Daplie/daplie-cli-domains.git#master",
+    "daplie-storage": "git+https://github.com/Daplie/daplie-cli-storage.git#master",
     "homedir": "^0.6.0",
-    "human-readable-ids": "^1.0.1"
+    "human-readable-ids": "^1.0.1",
+    "oauth3-cli": "git+https://github.com/OAuth3/oauth3-cli.git#master"
   }
 }

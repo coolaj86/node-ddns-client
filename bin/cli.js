@@ -3,8 +3,6 @@
 var PromiseA = require('bluebird');
 var colors = require('colors/safe');
 var stripAnsi = require('strip-ansi');
-var rs = process.stdin;
-var ws = process.stdout;
 
 // https://www.novell.com/documentation/extend5/Docs/help/Composer/books/TelnetAppendixB.html
 var BKSP = String.fromCharCode(127);
@@ -21,42 +19,21 @@ var ARROW_LEFT = '\u001b[D';    // 37
 // "\033[2J\033[;H" CLS // "\x1b[2J\x1b[1;1H"
 // \033[0m RESET
 
-function statusMessage(ws, msg) {
-  //var errlen = (' ' + err.message).length;
-  var x = ws._x;
-  // down one, start of line
-  // TODO write newline?
-  //ws.moveCursor(0, 1);
-  ws.write('\n');
-  ws.clearLine();
-  ws.cursorTo(0);
-  // write from beginning of line
-  ws.write(msg);
-  // restore position
-  ws.cursorTo(x);
-  ws.moveCursor(0, -1);
-}
-
-function ask(stdin, rws, q, cbs) {
-  return new PromiseA(function (resolve) {
-    var input = [];
-    var inputIndex = 0;
-    var ch;
+var form = {
+  createWs: function (rrs, rws) {
     // the user just hit enter to run a program, so the terminal is at x position 0,
     // however, we have no idea where y is, so we just make it really really negative
     var startY = -65537;
     // TODO update state on resize
     //console.log('');
-
-    stdin.setRawMode(true);
-    stdin.setEncoding('utf8');
-    stdin.resume();
-
     var ws = {
       _x: 0
     , _y: startY
     , _rows: rws.rows
     , _columns: rws.columns
+    , _prompt: ''
+    , _input: []
+    , _inputIndex: 0
     , cursorTo: function (x, y) {
         if ('number' !== typeof x || (0 !== x && !x)) {
           throw new Error('cursorTo(x[, y]): x is not optional and must be a number');
@@ -82,50 +59,50 @@ function ask(stdin, rws, q, cbs) {
         switch (str) {
           case BKSP:
           case WIN_BKSP:
-          statusMessage(ws, colors.dim(
-            "inputIndex: " + inputIndex
-          + " input:" + input.join('')
+          form.setStatus(rrs, ws, colors.dim(
+            "inputIndex: " + ws._inputIndex
+          + " input:" + ws._input.join('')
           + " x:" + ws._x
           ));
             x = ws._x;
-            if (0 !== inputIndex) {
-              inputIndex -= 1;
+            if (0 !== ws._inputIndex) {
+              ws._inputIndex -= 1;
               x -= 1;
             }
-            input.splice(inputIndex, 1);
+            ws._input.splice(ws._inputIndex, 1);
             ws.clearLine();
             //ws.cursorTo(0, col);
             ws.cursorTo(0);
             ws.clearLine();
-            ws.write(q);
-            ws.write(input.join(''));
+            ws.write(ws._prompt);
+            ws.write(ws._input.join(''));
             ws.cursorTo(x);
             return;
 
           case ARROW_RIGHT:
-          statusMessage(ws, colors.dim(
-            "inputIndex: " + inputIndex
-          + " input:" + input.join('')
+          form.setStatus(rrs, ws, colors.dim(
+            "inputIndex: " + ws._inputIndex
+          + " input:" + ws._input.join('')
           + " x:" + ws._x
           ));
-          if (ws._x === q.length + input.length) {
+          if (ws._x === ws._prompt.length + ws._input.length) {
             return;
           }
-          inputIndex += 1;
-          ws._x = q.length + inputIndex;
+          ws._inputIndex += 1;
+          ws._x = ws._prompt.length + ws._inputIndex;
           rws.write(str);
           return;
 
           case ARROW_LEFT:
-          statusMessage(ws, colors.dim(
-            "inputIndex: " + inputIndex
-          + " input:" + input.join('')
+          form.setStatus(rrs, ws, colors.dim(
+            "inputIndex: " + ws._inputIndex
+          + " input:" + ws._input.join('')
           + " x:" + ws._x
           ));
-          if (0 === inputIndex) {
+          if (0 === ws._inputIndex) {
             return;
           }
-          inputIndex = Math.max(0, inputIndex - 1);
+          ws._inputIndex = Math.max(0, ws._inputIndex - 1);
           //ws._x = Math.max(0, ws._x - 1);
           ws._x = Math.max(0, ws._x - 1);
           rws.write(str);
@@ -162,140 +139,199 @@ function ask(stdin, rws, q, cbs) {
       }
     };
 
-    ws.cursorTo(0);
-    ws.write(q);
-    //ws.cursorTo(0, q.length);
+    return ws;
+  }
 
-    var debouncer = {
-      set: function () {
-        if (!cbs.onDebounce) {
-          return;
+, ask: function (rrs, ws, prompt, cbs) {
+    ws._prompt = prompt;
+
+    return new PromiseA(function (resolve) {
+      var ch;
+
+      rrs.setRawMode(true);
+      rrs.setEncoding('utf8');
+      rrs.resume();
+
+      ws.cursorTo(0);
+      ws.write(ws._prompt);
+      //ws.cursorTo(0, ws._prompt.length);
+
+      var debouncer = {
+        set: function () {
+          if (!cbs.onDebounce) {
+            return;
+          }
+
+          clearTimeout(debouncer._timeout);
+
+          if ('function' !== typeof fn) {
+            return;
+          }
+
+          debouncer._timeout = setTimeout(function () {
+            rrs.pause();
+            return cbs.onDebounce(ws._input.join(''), ch).then(function () {
+              rrs.resume();
+            }, function (err) {
+              var errmsg = colors.red(err.message);
+              form.setStatus(rrs, ws, errmsg);
+              // resume input
+              rrs.resume();
+            });
+          }, cbs.debounceTimeout || 300);
         }
+      };
 
+      function callback() {
         clearTimeout(debouncer._timeout);
+        rrs.removeListener('data', onData);
 
-        if ('function' !== typeof fn) {
-          return;
+        rrs.pause();
+
+        cbs.onReturnAsync(rrs, ws, ws._input.join(''), ch).then(function () {
+          ws.write('\n');
+          rrs.setRawMode(false);
+
+          resolve({ input: ws._input.join('') });
+        }, function (err) {
+          rrs.on('data', onData);
+
+          var errmsg = colors.red(err.message);
+          form.setStatus(rrs, ws, errmsg);
+
+          rrs.resume();
+        });
+      }
+
+      function onData(chunk) {
+        var x;
+        ch = chunk.toString('utf8');
+        debouncer.set();
+
+        if (CTRL_C === ch) {
+          console.log("");
+          console.log("received CTRL+C and quit");
+          process.exit(0);
+          callback(new Error("cancelled"));
         }
 
-        debouncer._timeout = setTimeout(function () {
-          stdin.pause();
-          return cbs.onDebounce(input.join(''), ch).then(function () {
-            stdin.resume();
-          }, function (err) {
-            var errmsg = colors.red(err.message);
-            statusMessage(ws, errmsg);
-            // resume input
-            stdin.resume();
-          });
-        }, cbs.debounceTimeout || 300);
-      }
-    };
-
-    function callback() {
-      clearTimeout(debouncer._timeout);
-      stdin.removeListener('data', onData);
-
-      stdin.pause();
-
-      cbs.onReturnAsync(input.join(''), ch).then(function () {
-        ws.write('\n');
-        stdin.setRawMode(false);
-
-        resolve({ input: input.join('') });
-      }, function (err) {
-        stdin.on('data', onData);
-
-        var errmsg = colors.red(err.message);
-        statusMessage(ws, errmsg);
-
-        stdin.resume();
-      });
-    }
-
-    function onData(chunk) {
-      var x;
-      ch = chunk.toString('utf8');
-      debouncer.set();
-
-      if (CTRL_C === ch) {
-        console.log("");
-        console.log("received CTRL+C and quit");
-        process.exit(0);
-        callback(new Error("cancelled"));
+        switch (ch) {
+        case ENTER:
+        case CRLF:
+        case LF:
+        case "\n\r":
+        case "\r":
+          callback();
+          break;
+        case BKSP:
+        case WIN_BKSP:
+        case ARROW_LEFT:
+        case ARROW_RIGHT:
+          ws.write(ch);
+          break;
+        case ARROW_UP: // TODO history, show pass
+          break;
+        case ARROW_DOWN: // TODO history, hide pass
+          break;
+        case TAB:
+          // TODO auto-complete
+          break;
+        default:
+          form.setStatus(rrs, ws, colors.dim(
+            "inputIndex: " + ws._inputIndex
+          + " input:" + ws._input.join('')
+          + " x:" + ws._x
+          ));
+          x = ws._x;
+          ws._input.splice(ws._inputIndex, 0, ch);
+          ws.write(ws._input.slice(ws._inputIndex).join(''));
+          ws._inputIndex += 1;
+          ws.cursorTo(x + 1);
+          break;
+        }
       }
 
-      switch (ch) {
-      case ENTER:
-      case CRLF:
-      case LF:
-      case "\n\r":
-      case "\r":
-        callback();
-        break;
-      case BKSP:
-      case WIN_BKSP:
-      case ARROW_LEFT:
-      case ARROW_RIGHT:
-        ws.write(ch);
-        break;
-      case ARROW_UP: // TODO history, show pass
-        break;
-      case ARROW_DOWN: // TODO history, hide pass
-        break;
-      case TAB:
-        // TODO auto-complete
-        break;
-      default:
-        statusMessage(ws, colors.dim(
-          "inputIndex: " + inputIndex
-        + " input:" + input.join('')
-        + " x:" + ws._x
-        ));
-        x = ws._x;
-        input.splice(inputIndex, 0, ch);
-        ws.write(input.slice(inputIndex).join(''));
-        inputIndex += 1;
-        ws.cursorTo(x + 1);
-        break;
-      }
-    }
-
-    stdin.on('data', onData);
-  });
-}
-
-var inputs = {};
-
-inputs.email = {
-  onReturnAsync: function (str) {
-    str = str.trim();
-    var dns = PromiseA.promisifyAll(require('dns'));
-    var parts = str.split(/@/g);
-
-    if (2 !== parts.length || /\s+|\//.test(str)) {
-      return PromiseA.reject(new Error("[X] That doesn't look like an email address"));
-    }
-
-    process.stdin.pause();
-    statusMessage(ws, colors.blue("testing `dig mx '" + parts[1] + "'` ... "));
-
-    return dns.resolveMxAsync(parts[1]).then(function () {
-      return;
-    }, function () {
-      return PromiseA.reject(new Error("[X] '" + parts[1] + "' is not a valid email domain"));
+      rrs.on('data', onData);
     });
+  }
+, setStatus: function (rrs, ws, msg) {
+    //var errlen = (' ' + err.message).length;
+    var x = ws._x;
+    // down one, start of line
+    // TODO write newline?
+    //ws.moveCursor(0, 1);
+    ws.write('\n');
+    ws.clearLine();
+    ws.cursorTo(0);
+    // write from beginning of line
+    ws.write(msg);
+    // restore position
+    ws.cursorTo(x);
+    ws.moveCursor(0, -1);
   }
 };
 
-ask(rs, ws, "Enter your email address: ", inputs.email).then(function (/*obj*/) {
+var inputs = {
+  email: {
+    onReturnAsync: function (rrs, ws, str) {
+      str = str.trim();
+      var dns = PromiseA.promisifyAll(require('dns'));
+      var parts = str.split(/@/g);
+
+      if (2 !== parts.length || /\s+|\//.test(str)) {
+        return PromiseA.reject(new Error("[X] That doesn't look like an email address"));
+      }
+
+      rrs.pause();
+      form.setStatus(rrs, ws, colors.blue("testing `dig mx '" + parts[1] + "'` ... "));
+
+      return dns.resolveMxAsync(parts[1]).then(function () {
+        return;
+      }, function () {
+        return PromiseA.reject(new Error("[X] '" + parts[1] + "' is not a valid email domain"));
+      });
+    }
+  }
+};
+
+module.exports.inputs = inputs;
+module.exports.form = form;
+module.exports.create = function (rrs, rws) {
+  var ws = form.createWs(rrs, rws);
+  var f = {};
+
+  Object.keys(form).forEach(function (key) {
+    if ('function' !== typeof form[key]) {
+      f[key] = form[key];
+      return;
+    }
+
+    f[key] = function () {
+      var args = Array.prototype.slice.call(arguments);
+      args.unshift(ws);
+      args.unshift(rrs);
+      return form[key].apply(null, args);
+    };
+  });
+
+  f.inputs = inputs;
+  f.ws = ws;
+  f.rrs = rrs;
+
+  return f;
+
+};
+
+var cli = require('./cli').create(process.stdin, process.stdout);
+
+cli.ask("Enter your email address: ", cli.inputs.email).then(function (/*obj*/) {
   // TODO auto-clear line below
   //ws.cursorTo(0);
-  ws.clearLine(); // person just hit enter, they are on the next line
-  ws.write('\n');
-  ws.write('Check your email. You should receive an authorization code.\n');
-  return ask(rs, ws, "Enter your auth code: ", {
-    onReturnAsync: function (str) {
+  cli.ws.clearLine(); // person just hit enter, they are on the next line
+  cli.ws.write('\n');
+  cli.ws.write('Check your email. You should receive an authorization code.\n');
+  return cli.ask("Enter your auth code: ", {
+    onReturnAsync: function (rrs, ws, str) {
       if (!/-/.test(str)) {
         return PromiseA.reject(new Error("[X] That doesn't look like an authorization code."));
       }

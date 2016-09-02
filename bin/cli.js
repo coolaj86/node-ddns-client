@@ -269,7 +269,7 @@ ask(rs, ws, "Enter your email address: ", {
     var dns = PromiseA.promisifyAll(require('dns'));
     var parts = str.split(/@/g);
 
-    if (2 !== parts.length) {
+    if (2 !== parts.length || /\s+|\//.test(str)) {
       return PromiseA.reject(new Error("[X] That doesn't look like an email address"));
     }
 

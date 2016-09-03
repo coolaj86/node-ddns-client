@@ -138,23 +138,33 @@ function oauth3ify(args, options, cli/*, rc*/) {
         return Oauth3.Domains.search(oauth3, {
           domainname: options.hostname
         }).then(function (result) {
-          console.log(result[0]);
-          var valid = result && result[0] && result[0].valid;
-          var available = result && result[0] && result[0].available;
-          var msg = "'" + options.hostname + "' is not registered to this account, but ";
+          var info = result && result[0] || {};
+          var valid = info.valid;
+          var available = info.available;
+          var msg = "'"
+            + ((result && (info.sld + "." + info.tld)) || options.hostname)
+            + "' is not registered to this account, but ";
 
           if (available) {
-            msg += "it is available for purchase for $" + Math.ceil(result[0].amount / 100).toFixed(2);
+            msg += "it is available for purchase for $" + Math.ceil(info.amount / 100).toFixed(2);
           }
           else if (valid) {
-            msg += "if you already own it you can transfer it for $" + Math.ceil(result[0].amount / 100).toFixed(2);
+            msg += "if you already own it you can transfer it for $" + Math.ceil(info.amount / 100).toFixed(2);
           }
           else {
             msg += "it appears to be an invalid domain";
           }
 
           if (available || valid) {
-            msg += "\n\nHere's how to get it:\nDownload daplie tools: 'npm install --global daplie-tools'\nPurchase with 'daplie domains:search --domains " + result[0].sld + '.' + result[0].tld + "'\n"
+            msg += "\n\nHere's how to get it:"
+              + "\n"
+              + "\n\t# Install Daplie Tools from npm"
+              + "\n\tnpm install --global daplie-tools"
+              + "\n\t"
+              + "\n\t# Purchase the domain (requires credit card)"
+              + "\n\tdaplie domains:search --domains " + info.sld + '.' + info.tld
+              + "\n"
+              ;
           }
           return PromiseA.reject(new Error(msg));
         });
@@ -218,8 +228,14 @@ function oauth3ify(args, options, cli/*, rc*/) {
           return Oauth3.Devices.token(oauth3, {
             devicename: device
           }).then(function (result) {
-            console.log('Token:');
-            console.log(result);
+            console.info('');
+            console.info('You can set your DDNS client to use this URL:');
+            console.info('');
+            console.info('https://oauth3.org/api/com.daplie.domains/ddns?token=' + result.token);
+            console.info('');
+            console.info('You only need one url per device. All domains attached to this device will be updated');
+            console.info('with the source ip address whenever the device ip address is updated.');
+            console.info('');
           });
         });
       });

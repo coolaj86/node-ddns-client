@@ -39,7 +39,6 @@ cli.parse({
 , debug: [ false, 'print extra debug statements', 'boolean' ]
 });
 
-
 function oauth3ify(args, options, cli/*, rc*/) {
   var Oauth3 = require('oauth3-cli');
   //var CLI2 = require('oauth3-cli/lib/cli.js');
@@ -112,6 +111,140 @@ function oauth3ify(args, options, cli/*, rc*/) {
     username: options.email || cli.email
   , usertype: 'email'
   };
+  var type = (options.type||cli.type||'A').toUpperCase();
+
+
+  function setRecord() {
+    if (options.device) {
+      return PromiseA.reject(new Error("devices can only be set to A and AAAA records"));
+    }
+
+    return oauth3.Dns.set(oauth3, {
+      domainname: options.hostname
+    , priority: options.priority
+    , ttl: options.ttl || 600
+    , type: type
+    , value: options.answer
+    });
+  }
+
+  function setDevice() {
+    var device = options.device = oauth3.device.hostname;
+    var addresses = options.answer/*.split(',').filter(Boolean)*/ || undefined;
+
+    if (-1 === [ 'A', 'AAAA' ].indexOf(type)) {
+      return PromiseA.reject("only A, AAAA records supported right now");
+    }
+
+    // list devices
+    // TODO list by device with Dns.all() or list by domain with Devices.all()
+    return Oauth3.Dns.all(oauth3).then(function (records) {
+      var isAttached;
+      var allDomains = {};
+      var allDevices = {};
+      var deviceMap = {};
+      var domainMap = {};
+      var domainRecords = [];
+
+      records = records.records || records;
+
+      records.forEach(function (record) {
+        if (!allDomains[record.name]) {
+          allDomains[record.name] = {};
+        }
+        allDomains[record.name][record.device + record.type] = record;
+
+        if (!allDevices[record.device + record.type]) {
+          allDevices[record.device + record.type] = {};
+        }
+        allDevices[record.device + record.type][record.name] = record.device;
+      });
+
+      Object.keys(allDomains).forEach(function (recordname) {
+        allDomains[recordname] = Object.keys(allDomains[recordname]).map(function (devicenametype) {
+          var r = allDomains[recordname][devicenametype];
+          return r.device + ' (' + r.value + ')';
+        });
+      });
+      Object.keys(allDevices).forEach(function (recordname) {
+        allDevices[recordname] = Object.keys(allDevices[recordname]);
+      });
+
+      records.forEach(function (record) {
+        if (record.device === device) {
+          domainMap[record.name] = true;
+          domainRecords.push(record);
+        }
+
+        if (record.name !== options.hostname) {
+          return;
+        }
+
+        if (record.device === device) {
+          isAttached = true;
+          return;
+        }
+
+        deviceMap[record.device] = true;
+      });
+
+      if (options.hostname && !domainMap[options.hostname]) {
+        domainRecords.push({
+          name: options.hostname
+        });
+      }
+
+      // TODO detect ipv4,ipv6, invalid
+      return Oauth3.Devices.set(oauth3, {
+        devicename: device
+      , addresses: addresses
+      }).then(function () {
+        if (isAttached) {
+          return;
+        }
+
+        return Oauth3.Devices.attach(oauth3, {
+          devicename: device
+        , domainname: options.hostname || cli.hostname
+        });
+      }).then(function () {
+        // update
+        if (options.multi) {
+          return;
+        }
+
+        return PromiseA.all(Object.keys(deviceMap).map(function (devicename) {
+          return Oauth3.Devices.detach(oauth3, {
+            devicename: devicename
+          , domainname: options.hostname
+          });
+        }));
+      }).then(function () {
+        return Oauth3.Devices.token(oauth3, {
+          devicename: device
+        }).then(function (result) {
+          console.info('');
+          console.info("Updated device '" + device + "' with address '" + addresses + "'");
+          console.info('');
+          //console.info(deviceMap);
+          //console.info(domainMap);
+          //console.info(domainRecords);
+          console.info("Affected domains:\n\n" + domainRecords.map(function (d) {
+            return '\t' + d.name + ' - ' + allDomains[d.name].join(', ') + '\n';
+          }).join(''));
+          console.info('');
+          console.info("You can also update this device from routers that support DDNS URLs:");
+          console.info('');
+          console.info('https://oauth3.org/api/com.daplie.domains/ddns?token=' + result.token);
+          console.info('');
+          console.info('You only need one url per device. All domains attached to this device will be updated');
+          console.info('with the source ip address whenever the device ip address is updated.');
+          console.info('');
+        });
+      });
+    });
+  }
+
 
   return Oauth3.checkSession(oauth3, login).then(function () {
     if (!oauth3.session) {
@@ -170,123 +303,14 @@ function oauth3ify(args, options, cli/*, rc*/) {
         });
       }
     }).then(function () {
-      var device = options.device = oauth3.device.hostname;
-      var type = (options.type||cli.type||'A').toUpperCase();
-      var addresses = options.answer/*.split(',').filter(Boolean)*/ || undefined;
-
-      if (-1 === [ 'A', 'AAAA' ].indexOf(type)) {
-        return PromiseA.reject("only A, AAAA records supported right now");
+      // Set Device
+      if (!type || -1 !== ['A', 'AAAA'].indexOf(type)) {
+        return setDevice();
       }
-
-      // list devices
-      // TODO list by device with Dns.all() or list by domain with Devices.all()
-      return Oauth3.Dns.all(oauth3).then(function (records) {
-        var isAttached;
-        var allDomains = {};
-        var allDevices = {};
-        var deviceMap = {};
-        var domainMap = {};
-        var domainRecords = [];
-
-        records = records.records || records;
-
-        records.forEach(function (record) {
-          if (!allDomains[record.name]) {
-            allDomains[record.name] = {};
-          }
-          allDomains[record.name][record.device + record.type] = record;
-
-          if (!allDevices[record.device + record.type]) {
-            allDevices[record.device + record.type] = {};
-          }
-          allDevices[record.device + record.type][record.name] = record.device;
-        });
-
-        Object.keys(allDomains).forEach(function (recordname) {
-          allDomains[recordname] = Object.keys(allDomains[recordname]).map(function (devicenametype) {
-            var r = allDomains[recordname][devicenametype];
-            return r.device + ' (' + r.value + ')';
-          });
-        });
-        Object.keys(allDevices).forEach(function (recordname) {
-          allDevices[recordname] = Object.keys(allDevices[recordname]);
-        });
-
-        records.forEach(function (record) {
-          if (record.device === device) {
-            domainMap[record.name] = true;
-            domainRecords.push(record);
-          }
-
-          if (record.name !== options.hostname) {
-            return;
-          }
-
-          if (record.device === device) {
-            isAttached = true;
-            return;
-          }
-
-          deviceMap[record.device] = true;
-        });
-
-        if (options.hostname && !domainMap[options.hostname]) {
-          domainRecords.push({
-            name: options.hostname
-          });
-        }
-
-        // TODO detect ipv4,ipv6, invalid
-        return Oauth3.Devices.set(oauth3, {
-          devicename: device
-        , addresses: addresses
-        }).then(function () {
-          if (isAttached) {
-            return;
-          }
-
-          return Oauth3.Devices.attach(oauth3, {
-            devicename: device
-          , domainname: options.hostname || cli.hostname
-          });
-        }).then(function () {
-          // update
-          if (options.multi) {
-            return;
-          }
-
-          return PromiseA.all(Object.keys(deviceMap).map(function (devicename) {
-            return Oauth3.Devices.detach(oauth3, {
-              devicename: devicename
-            , domainname: options.hostname
-            });
-          }));
-        }).then(function () {
-          return Oauth3.Devices.token(oauth3, {
-            devicename: device
-          }).then(function (result) {
-            console.info('');
-            console.info("Updated device '" + device + "' with address '" + addresses + "'");
-            console.info('');
-            //console.info(deviceMap);
-            //console.info(domainMap);
-            //console.info(domainRecords);
-            console.info("Affected domains:\n\n" + domainRecords.map(function (d) {
-              return '\t' + d.name + ' - ' + allDomains[d.name].join(', ') + '\n';
-            }).join(''));
-            console.info('');
-            console.info("You can also update this device from routers that support DDNS URLs:");
-            console.info('');
-            console.info('https://oauth3.org/api/com.daplie.domains/ddns?token=' + result.token);
-            console.info('');
-            console.info('You only need one url per device. All domains attached to this device will be updated');
-            console.info('with the source ip address whenever the device ip address is updated.');
-            console.info('');
-          });
-        });
-      });
+      else {
+        return setRecord();
+      }
     });
-
   }).then(function () {}, function (err) {
     console.error();
     console.error();

@@ -42,7 +42,7 @@ cli.parse({
 , type: [ 't', 'The record type i.e. A, AAAA, MX, CNAME, ANAME, FWD, etc', 'string', 'A' ]
 });
 
-function oauth3ify(opts) {
+function oauth3ify(args, cli, rc) {
   var form = require('./cli').create(process.stdin, process.stdout);
   var CLI = {
     init: function (/*rs, ws, state, options*/) {
@@ -72,9 +72,12 @@ function oauth3ify(opts) {
         state.otpCode = obj.input;
       });
     }
-  /*
-  , readProviderUrl: function () {
+  , readProviderUrl: function (state) {
+      return form.ask("Enter your ddns provider: ", form.inputs.url).then(function (obj) {
+        state.providerUrl = obj.input;
+      });
     }
+  /*
   , readTotpToken: function () {
     }
   , printQr: function () {
@@ -87,18 +90,30 @@ function oauth3ify(opts) {
     }
   */
   };
-  var oauth3 = Oauth3.create({ providerUrl: opts.oauth3, CLI: CLI });
+  var oauth3 = Oauth3.create({
+    device: { hostname: cli.device }
+  , providerUrl: cli.oauth3
+  , CLI: CLI
+  });
   var login = {
-    username: opts.email
+    username: cli.email
   , usertype: 'email'
   };
 
+  console.log('TODO: check session', login.username);
   Oauth3.checkSession(oauth3, login).then(function () {
     if (!oauth3.session) {
       oauth3.requestOtp = true;
+      console.log('TODO: log in');
       return Oauth3.authenticate(oauth3);
     }
     return;
+  }).then(function () {
+    console.log('TODO: do dns stuff here');
+    //console.log(oauth3.session);
+    //console.log(oauth3.accounts);
+    //console.log(oauth3);
+    // option to remove extras
   });
 }
 
@@ -160,7 +175,8 @@ cli.main(function (args, cli) {
   }
 
   options.email = options.email || rc.email;
-  if (!cli.token && !rc.token) {
+  if (!cli.raw) {
+    // !cli.token && !rc.token
     oauth3ify(args, cli, rc);
   }
   else {

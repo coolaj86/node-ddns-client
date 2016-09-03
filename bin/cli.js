@@ -212,8 +212,8 @@ var form = {
       }
 
       function onData(chunk) {
+        var ch = chunk.toString('ascii');
         var x;
-        ch = chunk.toString('utf8');
         debouncer.set();
 
         if (CTRL_C === ch) {
@@ -250,13 +250,33 @@ var form = {
           + " input:" + ws._input.join('')
           + " x:" + ws._x
           ));
-          x = ws._x;
-          ws._input.splice(ws._inputIndex, 0, ch);
-          ws.write(ws._input.slice(ws._inputIndex).join(''));
-          ws._inputIndex += 1;
-          ws.cursorTo(x + 1);
+
+          function onChar(ch) {
+            x = ws._x;
+            ws._input.splice(ws._inputIndex, 0, ch);
+            ws.write(ws._input.slice(ws._inputIndex).join(''));
+            ws._inputIndex += 1;
+            ws.cursorTo(x + 1);
+          }
+
+          var ch8 = chunk.toString('utf8');
+          // TODO binary vs utf8 vs ascii
+          if (ch === ch8) {
+            ch.split('').forEach(onChar);
+          } else {
+            // TODO solve the 'Z͑ͫAͫ͗LͨͧG̑͗O͂̌!̿̋' problem
+            // https://github.com/selvan/grapheme-splitter
+            // https://mathiasbynens.be/notes/javascript-unicode
+            //
+            require('spliddit')(ch8).forEach(onChar);
+          }
           break;
         }
+
+        // Normally we only get one character at a time, but on paste (ctrl+v)
+        // and perhaps one of those times when the cpu is so loaded that you can
+        // literally watch characters appear on the screen more than one character
+        // will come in and we have to figure out what to do about that
       }
 
       rrs.on('data', onData);

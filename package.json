@@ -35,6 +35,7 @@
     "daplie-storage": "git+https://github.com/Daplie/daplie-cli-storage.git#master",
     "homedir": "^0.6.0",
     "human-readable-ids": "^1.0.1",
-    "oauth3-cli": "git+https://github.com/OAuth3/oauth3-cli.git#master"
+    "oauth3-cli": "git+https://github.com/OAuth3/oauth3-cli.git#master",
+    "spliddit": "^2.1.1"
   }
 }

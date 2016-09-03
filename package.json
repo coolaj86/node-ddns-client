@@ -1,11 +1,10 @@
 {
   "name": "ddns-cli",
-  "version": "1.3.2",
+  "version": "2.0.0-alpha",
   "description": "commandline dynamic dns client for node-ddns",
   "main": "lib/ddns-client.js",
   "bin": {
-    "ddns": "bin/ddns",
-    "ddns-testing": "bin/ddns"
+    "ddns": "bin/ddns.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

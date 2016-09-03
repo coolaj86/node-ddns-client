@@ -102,7 +102,7 @@ function oauth3ify(args, options, cli/*, rc*/) {
   */
   };
   var oauth3 = Oauth3.create({
-    device: { hostname: options.device || cli.device }
+    device: { hostname: (options.device || cli.device) }
   , providerUrl: options.oauth3 || cli.oauth3
   , CLI: CLI
 
@@ -182,11 +182,42 @@ function oauth3ify(args, options, cli/*, rc*/) {
       // TODO list by device with Dns.all() or list by domain with Devices.all()
       return Oauth3.Dns.all(oauth3).then(function (records) {
         var isAttached;
+        var allDomains = {};
+        var allDevices = {};
         var deviceMap = {};
+        var domainMap = {};
+        var domainRecords = [];
 
         records = records.records || records;
 
         records.forEach(function (record) {
+          if (!allDomains[record.name]) {
+            allDomains[record.name] = {};
+          }
+          allDomains[record.name][record.device + record.type] = record;
+
+          if (!allDevices[record.device + record.type]) {
+            allDevices[record.device + record.type] = {};
+          }
+          allDevices[record.device + record.type][record.name] = record.device;
+        });
+
+        Object.keys(allDomains).forEach(function (recordname) {
+          allDomains[recordname] = Object.keys(allDomains[recordname]).map(function (devicenametype) {
+            var r = allDomains[recordname][devicenametype];
+            return r.device + ' (' + r.value + ')';
+          });
+        });
+        Object.keys(allDevices).forEach(function (recordname) {
+          allDevices[recordname] = Object.keys(allDevices[recordname]);
+        });
+
+        records.forEach(function (record) {
+          if (record.device === device) {
+            domainMap[record.name] = true;
+            domainRecords.push(record);
+          }
+
           if (record.name !== options.hostname) {
             return;
           }
@@ -198,6 +229,12 @@ function oauth3ify(args, options, cli/*, rc*/) {
 
           deviceMap[record.device] = true;
         });
+
+        if (options.hostname && !domainMap[options.hostname]) {
+          domainRecords.push({
+            name: options.hostname
+          });
+        }
 
         // TODO detect ipv4,ipv6, invalid
         return Oauth3.Devices.set(oauth3, {
@@ -214,7 +251,7 @@ function oauth3ify(args, options, cli/*, rc*/) {
           });
         }).then(function () {
           // update
-          if (options.multidns) {
+          if (options.multi) {
             return;
           }
 
@@ -229,7 +266,16 @@ function oauth3ify(args, options, cli/*, rc*/) {
             devicename: device
           }).then(function (result) {
             console.info('');
-            console.info('You can set your DDNS client to use this URL:');
+            console.info("Updated device '" + device + "' with address '" + addresses + "'");
+            console.info('');
+            //console.info(deviceMap);
+            //console.info(domainMap);
+            //console.info(domainRecords);
+            console.info("Affected domains:\n\n" + domainRecords.map(function (d) {
+              return '\t' + d.name + ' - ' + allDomains[d.name].join(', ') + '\n';
+            }).join(''));
+            console.info('');
+            console.info("You can also update this device from routers that support DDNS URLs:");
             console.info('');
             console.info('https://oauth3.org/api/com.daplie.domains/ddns?token=' + result.token);
             console.info('');
@@ -241,10 +287,6 @@ function oauth3ify(args, options, cli/*, rc*/) {
       });
     });
 
-    //console.log(oauth3.session);
-    //console.log(oauth3.accounts);
-    //console.log(oauth3);
-    // option to remove extras
   }).then(function () {}, function (err) {
     console.error();
     console.error();
@@ -295,20 +337,6 @@ cli.main(function (args, cli) {
 
   if (!/\./.test(options.hostname)) {
     options.hostname += '.' + freedomain.replace(/^\*/, '').replace(/^\./, '');
-  }
-
-  options.services = (cli.services||cli.service||'').split(',').filter(function (s) { return s; });
-  if (!options.services.length) {
-    options.services = rc.services || [];
-  }
-
-  if (!options.services.length) {
-    options.services = [ 'ns1.redirect-www.org', 'ns2.redirect-www.org' ];
-  }
-
-  // XXX get le certs for ns1, ns2
-  if ('ns1.redirect-www.org,ns2.redirect-www.org' === options.services.join(',')) {
-    options.cacert = false;
   }
 
   options.email = options.email || rc.email;

@@ -113,7 +113,7 @@ function oauth3ify(args, options, cli/*, rc*/) {
   , usertype: 'email'
   };
 
-  Oauth3.checkSession(oauth3, login).then(function () {
+  return Oauth3.checkSession(oauth3, login).then(function () {
     if (!oauth3.session) {
       oauth3.requestOtp = true;
       return Oauth3.authenticate(oauth3);
@@ -135,7 +135,29 @@ function oauth3ify(args, options, cli/*, rc*/) {
           return true;
         }
       })) {
-        return PromiseA.reject(new Error("'" + options.hostname + "' is not registered to this account"));
+        return Oauth3.Domains.search(oauth3, {
+          domainname: options.hostname
+        }).then(function (result) {
+          console.log(result[0]);
+          var valid = result && result[0] && result[0].valid;
+          var available = result && result[0] && result[0].available;
+          var msg = "'" + options.hostname + "' is not registered to this account, but ";
+
+          if (available) {
+            msg += "it is available for purchase for $" + Math.ceil(result[0].amount / 100).toFixed(2);
+          }
+          else if (valid) {
+            msg += "if you already own it you can transfer it for $" + Math.ceil(result[0].amount / 100).toFixed(2);
+          }
+          else {
+            msg += "it appears to be an invalid domain";
+          }
+
+          if (available || valid) {
+            msg += "\n\nHere's how to get it:\nDownload daplie tools: 'npm install --global daplie-tools'\nPurchase with 'daplie domains:search --domains " + result[0].sld + '.' + result[0].tld + "'\n"
+          }
+          return PromiseA.reject(new Error(msg));
+        });
       }
     }).then(function () {
       var device = options.device = oauth3.device.hostname;

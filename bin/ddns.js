@@ -21,11 +21,20 @@ cli.parse({
 
 
 // actual dns stuff
-, name: [ 'h', "the domain name / host / alias to update - either of those you own or a subdomain of '" + freedomain + "'", 'string' ]
+// name / host / alias
+, name: [ false, "the domain name / host / alias to update - either of those you own or a subdomain of '" + freedomain + "'", 'string' ]
+, host: [ false, "deprecated alias for --name", 'string' ]
+, alias: [ false, "deprecated alias for --name", 'string' ]
+, hostname: [ 'h', "deprecated alias for --name", 'string' ]
+// type, priority
 , type: [ 't', 'The record type i.e. A, AAAA, MX, CNAME, TXT, SRV, ANAME, FWD, etc', 'string', 'A' ]
 , priority: [ 'p', 'The priority (for MX and other records)', 'string' ]
-, value: [ 'a', 'the value / answer / destination of the dns record - such as ip address, CNAME, text, etc', 'string' ]
-, ttl: [ false, 'The time-to-live for a record answer', 'string' ]
+// value / answer / destination
+, value: [ false, 'the value / answer / destination of the dns record - such as ip address, CNAME, text, etc', 'string' ]
+, answer: [ 'a', 'depracated alias for --value', 'string' ]
+, destination: [ false, 'depracated alias for --value', 'string' ]
+// ttl
+, ttl: [ false, "The record's cache time-to-live in seconds", 'string' ]
 // ish
 , device: [ false, "name of device or server to update. Multiple devices may be set to a single domain. Defaults to os.hostname (i.e. rpi.local)", 'string' ]
 , random: [ false, "get a randomly assigned hostname such as 'rubber-duck-42." + freedomain + "'", 'boolean' ]
@@ -47,9 +56,10 @@ cli.main(function (args, cli) {
   var options = {};
   var rc = {};
 
+  // I've heard it *both* ways!
   cli.agreeTos = cli.agree = cli['agree-tos'] || cli.agreeTos || cli.agree;
-  cli.hostname = cli.name;
   cli.oauth3 = cli.providerUrl = cli.oauth3 || cli.providerUrl || cli['provider-url'];
+  cli.name = cli.host = cli.alias = cli.hostname = cli.name || cli.host || cli.hostname || cli.alias;
   cli.value = cli.answer = cli.destination = cli.value || cli.answer || cli.destination;
 
   try {
@@ -67,16 +77,18 @@ cli.main(function (args, cli) {
     options[key] = cli[key];
   });
 
-  if (!cli.hostname) {
-    cli.hostname = args[0];
+  if (!cli.name) {
+    cli.name = args[0];
+    cli.name = cli.host = cli.alias = cli.hostname = cli.name;
     args.splice(0, 1);
   }
-  if (cli.hostname && cli.random) {
-    console.error("You may specify --hostname 'somedomain.example.com' or --random, but not both");
+
+  if (cli.name && cli.random) {
+    console.error("You may specify --name 'somedomain.example.com' or --random, but not both");
     return;
   }
-  if (!(cli.hostname || cli.random || rc.hostname || cli.device)) {
-    console.error("You must specify either --hostname 'somedomain.example.com' or --random or be updating a device with --device");
+  if (!(cli.name || cli.random || rc.hostname || cli.device)) {
+    console.error("You must specify either --name 'somedomain.example.com' or --random or be updating a device with --device");
     return;
   }
   if (cli.random) {
@@ -84,17 +96,22 @@ cli.main(function (args, cli) {
       console.error("[error] cannot use --random because you already have a domain in '" + configPath + "'");
       return;
     }
-  }
-  options.hostname = cli.hostname || rc.hostname || hri.random();
-
-  if (!/\./.test(options.hostname)) {
-    options.hostname += '.' + freedomain.replace(/^\*/, '').replace(/^\./, '');
+    cli.name = cli.name || hri.random();
   }
 
+  options.name = cli.name || rc.hostname;
+
+  if (!/\./.test(options.name)) {
+    options.name += '.' + freedomain.replace(/^\*/, '').replace(/^\./, '');
+  }
+  options.name = options.host = options.alias = options.hostname = options.name;
+  options.value = options.answer = options.destination = cli.value;
+
+  options.agree = options.agreeTos = cli.agreeTos;
   options.email = cli.email || rc.email;
+  options.device = cli.device;
   if (!cli.raw) {
     // !cli.token && !rc.token
-    options.answer = options.answer || cli.answer;
     require('../lib/ddns').run(args, options, cli, rc);
   }
   else {

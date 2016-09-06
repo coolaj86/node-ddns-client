@@ -271,6 +271,7 @@ and optionally `--port` and `--pathname`
 
 ```bash
 ddns \
+  --raw \
   --name example.com \
   --value 127.0.0.1 \
   --device server-3

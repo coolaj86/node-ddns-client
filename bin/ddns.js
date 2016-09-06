@@ -18,6 +18,8 @@ cli.parse({
 , email: [ false, 'we will keep your email safe and use it contact you when authenticated domain registration is available', 'email' ]
 , oauth3: [ false, 'oauth3 ddns server to use for token (defaults to oauth3.org)', 'string', 'oauth3.org' ]
 , multi: [ 'm', "Add multiple devices on a single domain", 'boolean' ]
+, 'refresh-token': [ false, 'a refresh token to use rather than login code', 'string' ]
+, 'refresh-token-path': [ false, 'path to refresh token to use rather than login code', 'string' ]
 
 
 // actual dns stuff
@@ -41,6 +43,7 @@ cli.parse({
 
 
 // dnsd stuff
+, raw: [ false, 'use this to connnect directly to a custom ddns server', 'boolean' ]
 , pathname: [ false, 'The api route to which to POST i.e. /api/ddns', 'string', '/api/com.daplie.dns/ddns' ]
 , port: [ false, 'The port (default https/443)', 'number', 443 ]
 , services: [ 's', 'The service to use for updates i.e. ns1.example.org,ns2.example.org', 'string' ]
@@ -57,6 +60,8 @@ cli.main(function (args, cli) {
   var rc = {};
 
   // I've heard it *both* ways!
+  cli.refreshTokenPath = cli.refreshTokenPath = cli['refresh-token-path'];
+  cli.refreshToken = cli.refreshToken = cli['refresh-token'];
   cli.agreeTos = cli.agree = cli['agree-tos'] || cli.agreeTos || cli.agree;
   cli.oauth3 = cli.providerUrl = cli.oauth3 || cli.providerUrl || cli['provider-url'];
   cli.name = cli.host = cli.alias = cli.hostname = cli.name || cli.host || cli.hostname || cli.alias;
@@ -110,6 +115,15 @@ cli.main(function (args, cli) {
   options.agree = options.agreeTos = cli.agreeTos;
   options.email = cli.email || rc.email;
   options.device = cli.device;
+  options.refreshToken = cli.refreshToken;
+  if (cli.refreshTokenPath) {
+    var fs = require('fs');
+    if (!fs.existsSync(cli.refreshTokenPath)) {
+      throw new Error("'" + cli.refreshTokenPath + "' does not exist");
+    }
+    options.refreshToken = fs.readFileSync(cli.refreshTokenPath, 'utf8').trim();
+  }
+
   if (!cli.raw) {
     // !cli.token && !rc.token
     require('../lib/ddns').run(args, options, cli, rc);

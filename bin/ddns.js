@@ -16,7 +16,7 @@ cli.parse({
   //agree-tos: [ false, 'Agree to the Daplie DNS terms of service. They are very friendly and available at https://daplie.com/dns#terms', 'boolean', false ]
 , config: [ false, 'path to config file', 'string', configPath ]
 , email: [ false, 'we will keep your email safe and use it contact you when authenticated domain registration is available', 'email' ]
-, oauth3: [ false, 'oauth3 ddns server to use for token (defaults to oauth3.org)', 'string', 'oauth3.org' ]
+, oauth3: [ false, 'oauth3 ddns server to use for token (defaults to oauth3.org)', 'string' ]
 , multi: [ 'm', "Add multiple devices on a single domain", 'boolean' ]
 , 'refresh-token': [ false, 'a refresh token to use rather than login code', 'string' ]
 , 'refresh-token-path': [ false, 'path to refresh token to use rather than login code', 'string' ]
@@ -29,7 +29,7 @@ cli.parse({
 , alias: [ false, "deprecated alias for --name", 'string' ]
 , hostname: [ 'h', "deprecated alias for --name", 'string' ]
 // type, priority
-, type: [ 't', 'The record type i.e. A, AAAA, MX, CNAME, TXT, SRV, ANAME, FWD, etc', 'string', 'A' ]
+, type: [ 't', 'The record type i.e. A, AAAA, MX, CNAME, TXT, SRV, ANAME, FWD, etc', 'string' ]
 , priority: [ 'p', 'The priority (for MX and other records)', 'string' ]
 // value / answer / destination
 , value: [ false, 'the value / answer / destination of the dns record - such as ip address, CNAME, text, etc', 'string' ]
@@ -116,6 +116,8 @@ cli.main(function (args, cli) {
   options.email = cli.email || rc.email;
   options.device = cli.device;
   options.refreshToken = cli.refreshToken;
+  options.oauth3 = cli.oauth3 || 'oauth3.org';
+  options.type = cli.type || 'A';
   if (cli.refreshTokenPath) {
     var fs = require('fs');
     if (!fs.existsSync(cli.refreshTokenPath)) {

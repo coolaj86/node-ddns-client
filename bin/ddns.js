@@ -128,7 +128,7 @@ cli.main(function (args, cli) {
 
   if (!cli.raw) {
     // !cli.token && !rc.token
-    require('../lib/ddns').run(args, options, cli, rc);
+    require('../lib/ddns').run(options, cli, rc);
   }
   else {
     require('../lib/raw').set(rc, options, cli);

@@ -40,6 +40,7 @@ cli.parse({
 // ish
 , device: [ false, "name of device or server to update. Multiple devices may be set to a single domain. Defaults to os.hostname (i.e. rpi.local)", 'string' ]
 , random: [ false, "get a randomly assigned hostname such as 'rubber-duck-42." + freedomain + "'", 'boolean' ]
+, remove: [ false, "remove a record matching the given name, type, and value" + freedomain + "'", 'boolean' ]
 
 
 // dnsd stuff

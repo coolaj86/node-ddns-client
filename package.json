@@ -31,7 +31,6 @@
     "cli": "^0.11.1",
     "daplie-dns": "git+https://github.com/Daplie/daplie-cli-dns.git#master",
     "daplie-domains": "git+https://github.com/Daplie/daplie-cli-domains.git#master",
-    "daplie-storage": "git+https://github.com/Daplie/daplie-cli-storage.git#master",
     "homedir": "^0.6.0",
     "human-readable-ids": "^1.0.1",
     "ipify": "^1.1.0",

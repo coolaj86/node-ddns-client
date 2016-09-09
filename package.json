@@ -2,7 +2,7 @@
   "name": "ddns-cli",
   "version": "2.0.0-alpha",
   "description": "commandline dynamic dns client for node.js",
-  "main": "bin/ddns.js",
+  "main": "lib/ddns.js",
   "bin": {
     "ddns": "bin/ddns.js"
   },

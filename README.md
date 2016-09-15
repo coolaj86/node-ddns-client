@@ -10,6 +10,8 @@ A command line Dynamic DNS client for node.js
 Commandline
 ===========
 
+Install node.js and then run the npm installer:
+
 ```bash
 npm install --global ddns-cli
 ```
